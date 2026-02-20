@@ -78,10 +78,12 @@ export const aiApi = {
       body: JSON.stringify({ language }),
     }).then(handleResponse),
 
-  submitAudio: (audio: Blob, expectedSentence: string) => {
+  submitAudio: (audio: Blob, expectedSentence: string, englishTranslation: string, language: string) => {
     const formData = new FormData();
-    formData.append('audio', audio);
+    formData.append('audio_file', audio, 'recording.webm');
     formData.append('expected_sentence', expectedSentence);
+    formData.append('english_translation', englishTranslation);
+    formData.append('language', language);
     const token = getToken();
     return fetch(`${AI_URL}/ai/submit-audio`, {
       method: 'POST',

@@ -18,8 +18,10 @@ interface SentenceData {
 interface FeedbackData {
   transcription: string;
   accuracy_score: number;
-  correct: boolean;
-  correct_translation: string;
+  is_correct: string;
+  expected_sentence: string;
+  english_translation: string;
+  feedback: string;
 }
 
 const Dashboard = () => {
@@ -63,14 +65,17 @@ const Dashboard = () => {
         if (sentence) {
           setLoadingFeedback(true);
           try {
-            const data = await aiApi.submitAudio(blob, sentence.sentence);
+            const data = await aiApi.submitAudio(blob, sentence.sentence, sentence.english_translation, language);
             setFeedback(data);
-          } catch {
+          } catch (err: any) {
+            console.error('Audio submission error:', err);
             setFeedback({
-              transcription: 'Unable to process audio',
+              transcription: err.message || 'Unable to process audio',
               accuracy_score: 0,
-              correct: false,
-              correct_translation: sentence.english_translation,
+              is_correct: 'incorrect',
+              expected_sentence: sentence.sentence,
+              english_translation: sentence.english_translation,
+              feedback: 'Unable to process audio. Please try again.',
             });
           } finally {
             setLoadingFeedback(false);
@@ -109,16 +114,16 @@ const Dashboard = () => {
   return (
     <div className="min-h-screen">
       <Navbar />
-      <div className="container mx-auto px-4 pt-24 pb-12">
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-          <h1 className="text-3xl font-bold mb-1">
+      <div className="container mx-auto px-4 pt-20 pb-8">
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="text-center">
+          <h1 className="text-2xl font-bold mb-1">
             Welcome back, <span className="text-gradient">{user?.full_name || 'Learner'}</span>
           </h1>
-          <p className="text-muted-foreground mb-8">Choose a mode to start practicing.</p>
+          <p className="text-muted-foreground mb-6 text-sm">Choose a mode to start practicing.</p>
         </motion.div>
 
         {/* Tabs */}
-        <div className="flex gap-2 mb-8">
+        <div className="flex gap-2 mb-6 justify-center">
           {[
             { key: 'speak' as const, label: 'Speaking Practice', icon: Mic },
             { key: 'chat' as const, label: 'AI Chat', icon: MessageSquare },
@@ -126,31 +131,31 @@ const Dashboard = () => {
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
-              className={`flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-medium transition-colors ${
+              className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
                 activeTab === tab.key
                   ? 'bg-primary text-primary-foreground'
                   : 'glass text-muted-foreground hover:text-foreground'
               }`}
             >
-              <tab.icon className="h-4 w-4" /> {tab.label}
+              {tab.label}
             </button>
           ))}
         </div>
 
         {activeTab === 'speak' ? (
-          <div className="max-w-2xl">
+          <div className="max-w-2xl mx-auto">
             {/* Language Selection */}
             {!language ? (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-                <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-                  <Globe className="h-5 w-5 text-primary" /> Select Language
+                <h2 className="text-lg font-semibold mb-3 text-center">
+                  Select Language
                 </h2>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   {LANGUAGES.map(lang => (
                     <button
                       key={lang}
                       onClick={() => setLanguage(lang)}
-                      className="glass rounded-xl p-4 text-center font-medium hover:border-primary/40 transition-colors"
+                      className="glass rounded-lg p-3 text-center text-sm font-medium hover:border-primary/40 transition-colors"
                     >
                       {lang}
                     </button>
@@ -158,25 +163,24 @@ const Dashboard = () => {
                 </div>
               </motion.div>
             ) : (
-              <div className="space-y-6">
+              <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <span className="rounded-lg bg-primary/10 px-3 py-1 text-sm font-medium text-primary">
+                  <div className="flex items-center gap-2">
+                    <span className="rounded-lg bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
                       {language}
                     </span>
                     <button
                       onClick={() => { setLanguage(''); setSentence(null); setFeedback(null); }}
-                      className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1"
+                      className="text-xs text-muted-foreground hover:text-foreground"
                     >
-                      <RotateCcw className="h-3.5 w-3.5" /> Change
+                      Change
                     </button>
                   </div>
                   <button
                     onClick={generateSentence}
                     disabled={loadingSentence}
-                    className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50 transition-opacity"
+                    className="rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50 transition-opacity"
                   >
-                    <Sparkles className="h-4 w-4" />
                     {loadingSentence ? 'Generating...' : sentence ? 'Next Sentence' : 'Generate Sentence'}
                   </button>
                 </div>
@@ -188,34 +192,34 @@ const Dashboard = () => {
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -10 }}
-                      className="glass rounded-2xl p-6 space-y-4"
+                      className="glass rounded-xl p-4 space-y-3"
                     >
                       <div>
                         <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Speak this:</p>
-                        <p className="text-2xl font-semibold">{sentence.sentence}</p>
+                        <p className="text-xl font-semibold">{sentence.sentence}</p>
                       </div>
                       <div>
                         <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Translation:</p>
-                        <p className="text-muted-foreground">{sentence.english_translation}</p>
+                        <p className="text-sm text-muted-foreground">{sentence.english_translation}</p>
                       </div>
 
                       {/* Record button */}
-                      <div className="flex justify-center pt-2">
+                      <div className="flex justify-center pt-1">
                         <button
                           onClick={recording ? stopRecording : startRecording}
                           disabled={loadingFeedback}
-                          className={`flex items-center gap-2 rounded-full px-8 py-4 text-sm font-semibold transition-all ${
+                          className={`rounded-full px-6 py-2.5 text-sm font-semibold transition-all ${
                             recording
                               ? 'bg-destructive text-destructive-foreground animate-pulse'
                               : 'bg-primary text-primary-foreground glow-primary hover:opacity-90'
                           } disabled:opacity-50`}
                         >
                           {recording ? (
-                            <><MicOff className="h-5 w-5" /> Stop Recording</>
+                            'Stop Recording'
                           ) : loadingFeedback ? (
                             'Analyzing...'
                           ) : (
-                            <><Mic className="h-5 w-5" /> Start Speaking</>
+                            'Start Speaking'
                           )}
                         </button>
                       </div>
@@ -226,25 +230,35 @@ const Dashboard = () => {
                           <motion.div
                             initial={{ opacity: 0, height: 0 }}
                             animate={{ opacity: 1, height: 'auto' }}
-                            className={`rounded-xl p-5 border ${
-                              feedback.correct
+                            className={`rounded-lg p-4 border ${
+                              feedback.is_correct === 'correct'
                                 ? 'bg-primary/5 border-primary/30'
                                 : 'bg-destructive/5 border-destructive/30'
                             }`}
                           >
-                            <div className="flex items-center gap-2 mb-3">
-                              {feedback.correct ? (
-                                <><CheckCircle2 className="h-6 w-6 text-primary" /> <span className="text-lg font-bold text-primary">Correct! 🎉</span></>
+                            <div className="flex items-center gap-2 mb-2">
+                              {feedback.is_correct === 'correct' ? (
+                                <><CheckCircle2 className="h-5 w-5 text-primary" /> <span className="text-base font-bold text-primary">Correct! 🎉</span></>
                               ) : (
-                                <><XCircle className="h-6 w-6 text-destructive" /> <span className="text-lg font-bold text-destructive">Try Again</span></>
+                                <><XCircle className="h-5 w-5 text-destructive" /> <span className="text-base font-bold text-destructive">Try Again</span></>
                               )}
                             </div>
-                            <div className="space-y-2 text-sm">
-                              <p><span className="text-muted-foreground">You said:</span> {feedback.transcription}</p>
-                              <p><span className="text-muted-foreground">Accuracy:</span> {Math.round(feedback.accuracy_score * 100)}%</p>
-                              {!feedback.correct && (
-                                <p><span className="text-muted-foreground">Correct:</span> {feedback.correct_translation}</p>
+                            <div className="space-y-2 text-xs">
+                              <div className="bg-background/50 rounded-lg p-2 border border-border">
+                                <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">What you said:</p>
+                                <p className="text-sm font-semibold">{feedback.transcription}</p>
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <span className="text-muted-foreground">Accuracy Score:</span>
+                                <span className="text-base font-bold">{Math.round(feedback.accuracy_score)}%</span>
+                              </div>
+                              {feedback.is_correct !== 'correct' && (
+                                <div className="bg-background/50 rounded-lg p-2 border border-border">
+                                  <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Expected:</p>
+                                  <p className="text-sm font-semibold">{feedback.expected_sentence}</p>
+                                </div>
                               )}
+                              <p className="text-muted-foreground italic pt-1">{feedback.feedback}</p>
                             </div>
                           </motion.div>
                         )}
@@ -257,11 +271,11 @@ const Dashboard = () => {
           </div>
         ) : (
           /* AI Chat */
-          <div className="max-w-2xl">
-            <div className="glass rounded-2xl overflow-hidden flex flex-col" style={{ height: '500px' }}>
-              <div className="flex-1 overflow-y-auto p-4 space-y-3">
+          <div className="max-w-2xl mx-auto">
+            <div className="glass rounded-xl overflow-hidden flex flex-col" style={{ height: '400px' }}>
+              <div className="flex-1 overflow-y-auto p-3 space-y-2">
                 {chatMessages.length === 0 && (
-                  <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
+                  <div className="flex items-center justify-center h-full text-muted-foreground text-xs">
                     Start a conversation with AI...
                   </div>
                 )}
@@ -273,7 +287,7 @@ const Dashboard = () => {
                     className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
                   >
                     <div
-                      className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm ${
+                      className={`max-w-[80%] rounded-xl px-3 py-2 text-xs ${
                         msg.role === 'user'
                           ? 'bg-primary text-primary-foreground'
                           : 'bg-secondary text-secondary-foreground'
@@ -285,26 +299,26 @@ const Dashboard = () => {
                 ))}
                 {chatLoading && (
                   <div className="flex justify-start">
-                    <div className="bg-secondary rounded-2xl px-4 py-2.5 text-sm text-muted-foreground">
+                    <div className="bg-secondary rounded-xl px-3 py-2 text-xs text-muted-foreground">
                       Thinking...
                     </div>
                   </div>
                 )}
               </div>
-              <div className="border-t border-border p-3 flex gap-2">
+              <div className="border-t border-border p-2 flex gap-2">
                 <input
                   value={chatInput}
                   onChange={e => setChatInput(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && !e.shiftKey && sendChat()}
                   placeholder="Type a message..."
-                  className="flex-1 rounded-lg border border-border bg-secondary/50 px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
+                  className="flex-1 rounded-lg border border-border bg-secondary/50 px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
                 />
                 <button
                   onClick={sendChat}
                   disabled={chatLoading || !chatInput.trim()}
-                  className="rounded-lg bg-primary px-4 py-2.5 text-primary-foreground hover:opacity-90 disabled:opacity-50 transition-opacity"
+                  className="rounded-lg bg-primary px-3 py-2 text-primary-foreground hover:opacity-90 disabled:opacity-50 transition-opacity text-xs"
                 >
-                  <ArrowRight className="h-4 w-4" />
+                  Send
                 </button>
               </div>
             </div>

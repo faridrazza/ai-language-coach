@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { motion } from 'framer-motion';
-import { Mic, Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff } from 'lucide-react';
 
 const Login = () => {
   const { login } = useAuth();
@@ -36,8 +36,7 @@ const Login = () => {
       >
         <div className="mb-8 text-center">
           <Link to="/" className="inline-flex items-center gap-2 text-2xl font-bold mb-2">
-            <Mic className="h-7 w-7 text-primary" />
-            <span className="text-gradient">SpeakAI</span>
+            <span className="text-gradient">DemoPoc</span>
           </Link>
           <p className="text-muted-foreground">Welcome back! Sign in to continue.</p>
         </div>

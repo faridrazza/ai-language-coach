@@ -1,7 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { motion } from 'framer-motion';
-import { Menu, X, Mic, LogOut } from 'lucide-react';
+import { Menu, X, LogOut } from 'lucide-react';
 import { useState } from 'react';
 
 const Navbar = () => {
@@ -22,8 +22,7 @@ const Navbar = () => {
     >
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
         <Link to="/" className="flex items-center gap-2 text-xl font-bold">
-          <Mic className="h-6 w-6 text-primary" />
-          <span className="text-gradient">SpeakAI</span>
+          <span className="text-gradient">DemoPoc</span>
         </Link>
 
         {/* Desktop */}
